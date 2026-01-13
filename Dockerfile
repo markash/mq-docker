@@ -1,9 +1,19 @@
-FROM amazonlinux:2023
+# References
+# - https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=imlur-installing-first-mq-installation-linux-using-rpm-command
+# - https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=linux-accepting-license-mq
+# - https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=vmil-verifying-local-server-installation-using-command-line-linux
+FROM redhat/ubi9-init:latest
 
 # Install dependencies
-# shadow-utils.x86_64 is required to create 'mqm' user/group during installation
+# shadow-utils.x86_64 & sudo are required to create 'app' user/group during installation
 # net-tools is required for 'netstat' and other commands
-RUN yum install tar gzip procps which sudo rpm-build shadow-utils.x86_64 net-tools openssl passwd -y 
+# rpm-build is required for building rpm packages
+RUN yum --setopt=install_weak_deps=0 -y install tar gzip net-tools rpm-build shadow-utils.x86_64 sudo \
+                && yum -y update \
+                && yum clean all
+
+RUN groupadd -g 1002 dev
+RUN useradd -rm -d /home/app -s /bin/bash -g dev -G dev -u 101 app -p $(echo passw0rd | openssl passwd -1 -stdin)
 
 # Copy files to image
 COPY 9.4.4.0-IBM-MQ-Advanced-for-Developers-LinuxX64.tar.gz /tmp/
@@ -12,7 +22,6 @@ RUN tar xvf 9.4.4.0-IBM-MQ-Advanced-for-Developers-LinuxX64.tar.gz
 RUN rm 9.4.4.0-IBM-MQ-Advanced-for-Developers-LinuxX64.tar.gz
 
 ## Installation
-# https://www.ibm.com/support/knowledgecenter/SSFKSJ_9.2.0/com.ibm.mq.ins.doc/q008640_.htm
 WORKDIR /tmp/MQServer 
 RUN ./crtmqpkg mqm
 
@@ -20,20 +29,14 @@ WORKDIR /var/tmp/mq_rpms/mqm/x86_64/
 RUN rpm -Uvh MQSeries*.rpm
 
 # Accept License
-# https://www.ibm.com/support/knowledgecenter/SSFKSJ_9.2.0/com.ibm.mq.ins.doc/q133540_.htm#q133540_
 WORKDIR /opt/mqm/bin/
 RUN ./mqlicense <<< "1"
 
 # Verification
-# https://www.ibm.com/support/knowledgecenter/SSFKSJ_9.2.0/com.ibm.mq.ins.doc/q009243_.htm
-RUN sudo -u mqm ./dspmqver
-
-EXPOSE 9443 1414 9157
-
-RUN groupadd -g 1002 dev
-RUN useradd -rm -d /home/app -s /bin/bash -g dev -G dev -u 101 app -p $(echo passw0rd | openssl passwd -1 -stdin)
+RUN sudo -u mqm /opt/mqm/bin/dspmqver
 
 # Configure MQ Web Console
+USER root
 COPY install/mqwebuser.xml /var/mqm/web/installations/Installation1/servers/mqweb
 RUN chown mqm:mqm /var/mqm/web/installations/Installation1/servers/mqweb/mqwebuser.xml
 RUN chmod 640 /var/mqm/web/installations/Installation1/servers/mqweb/mqwebuser.xml
@@ -46,7 +49,7 @@ RUN chown mqm:mqm /opt/mqm/bin/run_mq.sh
 
 # Install & Configure Queue Manager
 COPY install/xdevmq_init.mqsc /tmp/xdevmq_init.mqsc
-RUN sudo chown mqm:mqm /tmp/xdevmq_init.mqsc 
+RUN chown mqm:mqm /tmp/xdevmq_init.mqsc 
 RUN mkdir /mnt/mqm || true
 RUN mkdir /mnt/mqm/data || true 
 RUN mkdir /mnt/mqm/logs || true
@@ -57,20 +60,12 @@ RUN chown mqm:mqm /mnt/mqm/logs || true
 COPY install/install_mq.sh /tmp/install_mq.sh
 WORKDIR /opt/mqm/bin/
 RUN sh /tmp/install_mq.sh
-#RUN sudo -u mqm /opt/mqm/bin/crtmqm -md /mnt/mqm/data -ld /mnt/mqm/logs QM1
-#RUN sudo -u mqm /opt/mqm/bin/strmqm -x -d all QM1 
-#RUN sudo -u mqm /opt/mqm/bin/dspmq
-# RUN sudo -u mqm /opt/mqm/bin/runmqsc QM1 -f /tmp/xdevmq_init.mqsc
 
-#ENTRYPOINT [ "sh", "/opt/mqm/bin/run_mq.sh" ]
+COPY install/usr/bin/ibmmq.service /etc/systemd/system/ibmmq.service
+COPY install/usr/bin/mqweb.service /etc/systemd/system/mqweb.service
+RUN systemctl enable ibmmq
+RUN systemctl enable mqweb
 
-# Install Queue Manager
-#COPY install/install_mq.sh /tmp/install_mq.sh
-#COPY install/xdevmq_init.mqsc /tmp/xdevmq_init.mqsc
-#WORKDIR /opt/mqm/bin/
-#RUN sh /tmp/install_mq.sh
+EXPOSE 9443 1414 9157
 
-# Configure Queue Manager
-#COPY xdevmq_init.mqsc /tmp/xdevmq_init.mqsc
-#WORKDIR /opt/mqm/bin/
-#RUN sh /opt/mqm/bin/runmqsc XDEVMQ < /tmp/xdevmq_init.mqsc
+CMD [ "/sbin/init" ]

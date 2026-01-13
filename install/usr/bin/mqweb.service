@@ -1,0 +1,16 @@
+[Unit]
+Description = IBM MQ Web Console
+After = network.target
+
+[Service]
+Type=simple
+User=mqm
+Group=mqm
+ExecStart=/opt/mqm/bin/strmqweb
+TimeoutStartSec=0
+RemainAfterExit=yes
+ExecStop=/opt/mqm/bin/endmqweb
+StandardOutput=journal
+
+[Install]
+WantedBy = default.target

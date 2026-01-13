@@ -1,0 +1,16 @@
+[Unit]
+Description = IBM MQ
+After = network.target
+
+[Service]
+Type=simple
+User=mqm
+Group=mqm
+ExecStart=/opt/mqm/bin/strmqm -x QM1
+TimeoutStartSec=0
+RemainAfterExit=yes
+ExecStop=/opt/mqm/bin/endmqm -x QM1
+StandardOutput=journal
+
+[Install]
+WantedBy = default.target
