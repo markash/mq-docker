@@ -1,0 +1,1 @@
+docker build --no-cache -t mq-amazon:latest . -f=Dockerfile
