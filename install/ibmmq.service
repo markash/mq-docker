@@ -3,14 +3,14 @@ Description = IBM MQ
 After = network.target
 
 [Service]
-Type=simple
+Type=forking
 User=mqm
 Group=mqm
-ExecStart=/opt/mqm/bin/strmqm -x QM1
+ExecStart=/opt/mqm/bin/strmqm -x -d all QM1
 TimeoutStartSec=0
 RemainAfterExit=yes
 ExecStop=/opt/mqm/bin/endmqm -x QM1
 StandardOutput=journal
 
 [Install]
-WantedBy = default.target
+WantedBy = multi-user.target

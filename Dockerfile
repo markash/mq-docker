@@ -42,11 +42,6 @@ RUN chown mqm:mqm /var/mqm/web/installations/Installation1/servers/mqweb/mqwebus
 RUN chmod 640 /var/mqm/web/installations/Installation1/servers/mqweb/mqwebuser.xml
 RUN sudo -u mqm /opt/mqm/bin/strmqweb
 
-# Start Queue Manager & Web script
-COPY install/run_mq.sh /opt/mqm/bin/run_mq.sh
-RUN chmod +x /opt/mqm/bin/run_mq.sh
-RUN chown mqm:mqm /opt/mqm/bin/run_mq.sh
-
 # Install & Configure Queue Manager
 COPY install/xdevmq_init.mqsc /tmp/xdevmq_init.mqsc
 RUN chown mqm:mqm /tmp/xdevmq_init.mqsc 
@@ -61,10 +56,12 @@ COPY install/install_mq.sh /tmp/install_mq.sh
 WORKDIR /opt/mqm/bin/
 RUN sh /tmp/install_mq.sh
 
-COPY install/usr/bin/ibmmq.service /etc/systemd/system/ibmmq.service
-COPY install/usr/bin/mqweb.service /etc/systemd/system/mqweb.service
-RUN systemctl enable ibmmq
-RUN systemctl enable mqweb
+COPY install/ibmmq.service /etc/systemd/system/ibmmq.service
+COPY install/mqweb.service /etc/systemd/system/mqweb.service
+RUN chmod -x /etc/systemd/system/ibmmq.service && \
+    chmod -x /etc/systemd/system/mqweb.service && \
+    systemctl enable ibmmq && \
+    systemctl enable mqweb
 
 EXPOSE 9443 1414 9157
 

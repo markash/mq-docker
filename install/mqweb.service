@@ -1,15 +1,16 @@
 [Unit]
-Description=IBM MQ Web Console and REST API
-After=network.target
+Description = IBM MQ Web Console
+After = network.target
 
 [Service]
-Type=forking
-ExecStart=/opt/mqm/bin/strmqweb
-ExecStop=/opt/mqm/bin/endmqweb
+Type=simple
 User=mqm
 Group=mqm
-Environment=MQ_OVERRIDE_DATA_PATH=/var/mqm/web
-Restart=on-failure
+ExecStart=/opt/mqm/bin/strmqweb
+TimeoutStartSec=0
+RemainAfterExit=yes
+ExecStop=/opt/mqm/bin/endmqweb
+StandardOutput=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy = multi-user.target
