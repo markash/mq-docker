@@ -1,19 +1,43 @@
 services:
-  windows:
-    image: dockurr/windows
-    container_name: windows
-    environment:
-      VERSION: "11"
-    devices:
-      - /dev/kvm
-      - /dev/net/tun
-    cap_add:
-      - NET_ADMIN
+  mqm:
+    image: "mq-amazon:latest"
+    
     ports:
-      - 8006:8006
-      - 3389:3389/tcp
-      - 3389:3389/udp
+      - "1414:1414/tcp"
+      - "9443:9443/tcp"
+
+    environment:
+      - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      - "container=oci"
+
+    command:
+      - "/sbin/init"
+
+    ipc: "private"
+
+    logging:
+      driver: "json-file"
+      options: {}
+
+    network_mode: "bridge"
+
+    stdin_open: true
+
+    tty: true
+
+    user: "root"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1Gb
+
+    tmpfs:
+      - /tmp
+      - /run
+
     volumes:
-      - ./windows:/storage
-    restart: always
-    stop_grace_period: 2m
+      - "/sys/fs/cgroup:/sys/fs/cgroup"
+
+    working_dir: "/opt/mqm/bin/"
