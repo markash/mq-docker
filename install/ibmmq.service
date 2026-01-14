@@ -1,9 +1,14 @@
+#
+# -si → Start as initialization (used during system boot).
+# -ss → Start as a service (used when starting manually or via systemd).
+#
+
 [Unit]
 Description = IBM MQ
 After = network.target
 
 [Service]
-Type=simple
+Type=forking
 User=mqm
 Group=mqm
 ExecStart=/opt/mqm/bin/strmqm -x QM1
@@ -13,4 +18,4 @@ ExecStop=/opt/mqm/bin/endmqm -x QM1
 StandardOutput=journal
 
 [Install]
-WantedBy = default.target
+WantedBy = multi-user.target
